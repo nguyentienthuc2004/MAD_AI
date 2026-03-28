@@ -9,6 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel
 from transformers import AutoImageProcessor, AutoModelForImageClassification
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 CHECKPOINT_DIR = os.getenv("CHECKPOINT_DIR", os.path.join(os.path.dirname(__file__), "checkpoint"))
 NSFW_THRESHOLD = float(os.getenv("NSFW_THRESHOLD", "0.70"))
@@ -69,10 +72,13 @@ async def moderate_images(
     files: List[UploadFile] = File(...),
     threshold: float = Form(default=NSFW_THRESHOLD),
 ):
+    logging.info(f"Received {len(files)} files for moderation.")
     if IMAGE_MODEL is None or IMAGE_PROCESSOR is None:
+        logging.error(f"Model failed to load: {MODEL_LOAD_ERROR}")
         raise HTTPException(status_code=500, detail=f"Model failed to load: {MODEL_LOAD_ERROR}")
 
     if threshold < 0 or threshold > 1:
+        logging.warning(f"Invalid threshold: {threshold}")
         raise HTTPException(status_code=400, detail="threshold must be between 0 and 1")
 
     nsfw_idx = None
@@ -82,6 +88,7 @@ async def moderate_images(
             break
 
     if nsfw_idx is None:
+        logging.error("NSFW label is missing in model config")
         raise HTTPException(status_code=500, detail="NSFW label is missing in model config")
 
     results: List[ModerationResult] = []
@@ -91,6 +98,7 @@ async def moderate_images(
             content = await upload.read()
             image = Image.open(io.BytesIO(content)).convert("RGB")
         except (UnidentifiedImageError, OSError):
+            logging.error(f"Invalid image file: {upload.filename}")
             raise HTTPException(status_code=400, detail=f"Invalid image file: {upload.filename}")
 
         inputs = IMAGE_PROCESSOR(images=image, return_tensors="pt")
@@ -102,6 +110,8 @@ async def moderate_images(
 
         predicted_idx = int(torch.argmax(probs, dim=-1).item())
         predicted_label = str(IMAGE_MODEL.config.id2label.get(predicted_idx, "unknown"))
+
+        logging.info(f"File: {upload.filename}, Predicted: {predicted_label}, NSFW Score: {nsfw_score}")
 
         results.append(
             ModerationResult(
@@ -117,6 +127,8 @@ async def moderate_images(
         for item in results
         if item.isSensitive
     ]
+
+    logging.info(f"Sensitive images detected: {len(flags)}")
 
     return ModerationResponse(
         success=True,
