@@ -5,6 +5,7 @@ from typing import List
 
 import torch
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, UnidentifiedImageError
@@ -12,9 +13,17 @@ from pydantic import BaseModel
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 import logging
 
-from recommend import build_recommender
+from recommend import select_best_recommender
 
 logging.basicConfig(level=logging.INFO)
+
+
+def _load_env() -> None:
+    env_path = os.getenv("DOTENV_PATH") or os.path.join(os.path.dirname(__file__), ".env")
+    load_dotenv(env_path)
+
+
+_load_env()
 
 CHECKPOINT_DIR = os.getenv("CHECKPOINT_DIR", os.path.join(os.path.dirname(__file__), "checkpoint"))
 NSFW_THRESHOLD = float(os.getenv("NSFW_THRESHOLD", "0.70"))
@@ -90,7 +99,7 @@ def _refresh_recommender_once() -> bool:
         return False
 
     try:
-        next_recommender = build_recommender(mongo_uri)
+        next_recommender, best_config, best_metrics = select_best_recommender(mongo_uri)
     except Exception as exc:
         RECOMMENDER_INIT_ERROR = str(exc)
         logging.exception("[recommender] Refresh failed")
@@ -100,7 +109,15 @@ def _refresh_recommender_once() -> bool:
         RECOMMENDER = next_recommender
         RECOMMENDER_INIT_ERROR = None
 
-    logging.info("[recommender] Refresh succeeded")
+    logging.info(
+        "[recommender] Refresh succeeded with best model: factors=%s reg=%s iter=%s alpha=%s NDCG@%s=%.4f",
+        best_config.factors,
+        best_config.regularization,
+        best_config.iterations,
+        best_config.alpha,
+        best_config.eval_k,
+        best_metrics.get("ndcg_at_k", 0.0),
+    )
     return True
 
 
@@ -163,7 +180,12 @@ def recommend_posts(payload: RecommendRequest):
     try:
         recommender = _get_recommender()
     except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        logging.warning("[recommender] unavailable, returning empty recommendations: %s", exc)
+        return RecommendResponse(
+            user_id=str(payload.user_id),
+            count=0,
+            post_ids=[],
+        )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"failed to initialize recommender: {exc}") from exc
 

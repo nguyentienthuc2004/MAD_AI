@@ -1,0 +1,201 @@
+{
+  "data_profile": {
+    "interactions": 3945,
+    "users": 7,
+    "posts": 38
+  },
+  "split_profile": {
+    "train": 3818,
+    "val": 7,
+    "val_post_overlap_with_train": 1.0
+  },
+  "baseline_popularity": {
+    "metrics": {
+      "users_evaluated": 7,
+      "precision_at_k": 0.028571428571428574,
+      "recall_at_k": 0.2857142857142857,
+      "map_at_k": 0.03015873015873016,
+      "ndcg_at_k": 0.08429926028312416
+    },
+    "composite_score": 0.08819860378892211
+  },
+  "candidates": [
+    {
+      "config": {
+        "database": "blog_db",
+        "collection": "user_activities",
+        "decay_days": 30,
+        "factors": 32,
+        "regularization": 0.05,
+        "iterations": 30,
+        "alpha": 20.0,
+        "eval_k": 10,
+        "random_state": 42,
+        "activity_weight": {
+          "view": 1.0,
+          "like": 3.0,
+          "comment": 6.0
+        }
+      },
+      "seeds": [
+        7,
+        42,
+        2026
+      ],
+      "mean_metrics": {
+        "users_evaluated": 7,
+        "precision_at_k": 0.09999999999999999,
+        "recall_at_k": 1.0,
+        "map_at_k": 0.7079931972789116,
+        "ndcg_at_k": 0.7776501093881584
+      },
+      "run_scores": [
+        0.7759995354190867,
+        0.781630713571431,
+        0.7793338254591874
+      ],
+      "mean_composite_score": 0.7789880248165684,
+      "score_std": 0.002311886013508831
+    },
+    {
+      "config": {
+        "database": "blog_db",
+        "collection": "user_activities",
+        "decay_days": 30,
+        "factors": 64,
+        "regularization": 0.05,
+        "iterations": 30,
+        "alpha": 40.0,
+        "eval_k": 10,
+        "random_state": 42,
+        "activity_weight": {
+          "view": 1.0,
+          "like": 3.0,
+          "comment": 6.0
+        }
+      },
+      "seeds": [
+        7,
+        42,
+        2026
+      ],
+      "mean_metrics": {
+        "users_evaluated": 7,
+        "precision_at_k": 0.09999999999999999,
+        "recall_at_k": 1.0,
+        "map_at_k": 0.6656651549508693,
+        "ndcg_at_k": 0.7443658234673954
+      },
+      "run_scores": [
+        0.6854562744387792,
+        0.7759995354190867,
+        0.7775013118392281
+      ],
+      "mean_composite_score": 0.7463190405656981,
+      "score_std": 0.043040841523441696
+    },
+    {
+      "config": {
+        "database": "blog_db",
+        "collection": "user_activities",
+        "decay_days": 30,
+        "factors": 96,
+        "regularization": 0.02,
+        "iterations": 30,
+        "alpha": 40.0,
+        "eval_k": 10,
+        "random_state": 42,
+        "activity_weight": {
+          "view": 1.0,
+          "like": 3.0,
+          "comment": 6.0
+        }
+      },
+      "seeds": [
+        7,
+        42,
+        2026
+      ],
+      "mean_metrics": {
+        "users_evaluated": 7,
+        "precision_at_k": 0.09999999999999999,
+        "recall_at_k": 1.0,
+        "map_at_k": 0.7017195767195767,
+        "ndcg_at_k": 0.7727068779247089
+      },
+      "run_scores": [
+        0.7698203875797638,
+        0.7846117377725268,
+        0.7679878739598046
+      ],
+      "mean_composite_score": 0.7741399997706985,
+      "score_std": 0.0074423338241905775
+    },
+    {
+      "config": {
+        "database": "blog_db",
+        "collection": "user_activities",
+        "decay_days": 30,
+        "factors": 128,
+        "regularization": 0.01,
+        "iterations": 40,
+        "alpha": 60.0,
+        "eval_k": 10,
+        "random_state": 42,
+        "activity_weight": {
+          "view": 1.0,
+          "like": 3.0,
+          "comment": 6.0
+        }
+      },
+      "seeds": [
+        7,
+        42,
+        2026
+      ],
+      "mean_metrics": {
+        "users_evaluated": 7,
+        "precision_at_k": 0.09999999999999999,
+        "recall_at_k": 1.0,
+        "map_at_k": 0.6976757369614512,
+        "ndcg_at_k": 0.768961031545679
+      },
+      "run_scores": [
+        0.7639212089364338,
+        0.7721172756920075,
+        0.7759995354190867
+      ],
+      "mean_composite_score": 0.7706793400158428,
+      "score_std": 0.005034695416936333
+    }
+  ],
+  "selection_policy": "max(mean_composite_score)",
+  "best_model": {
+    "config": {
+      "database": "blog_db",
+      "collection": "user_activities",
+      "decay_days": 30,
+      "factors": 32,
+      "regularization": 0.05,
+      "iterations": 30,
+      "alpha": 20.0,
+      "eval_k": 10,
+      "random_state": 42,
+      "activity_weight": {
+        "view": 1.0,
+        "like": 3.0,
+        "comment": 6.0
+      }
+    },
+    "best_seed": 42,
+    "mean_metrics": {
+      "users_evaluated": 7,
+      "precision_at_k": 0.09999999999999999,
+      "recall_at_k": 1.0,
+      "map_at_k": 0.7079931972789116,
+      "ndcg_at_k": 0.7776501093881584
+    },
+    "mean_composite_score": 0.7789880248165684,
+    "beats_popularity": true
+  }
+}
