@@ -1,11 +1,11 @@
 {
   "data_profile": {
-    "interactions": 4438,
+    "interactions": 4440,
     "users": 8,
     "posts": 38
   },
   "split_profile": {
-    "train": 4289,
+    "train": 4290,
     "val": 8,
     "val_post_overlap_with_train": 1.0
   },
@@ -44,18 +44,18 @@
       ],
       "mean_metrics": {
         "users_evaluated": 8,
-        "precision_at_k": 0.07083333333333335,
-        "recall_at_k": 0.7083333333333334,
-        "map_at_k": 0.4913194444444444,
-        "ndcg_at_k": 0.5458768082589365
+        "precision_at_k": 0.09166666666666667,
+        "recall_at_k": 0.9166666666666666,
+        "map_at_k": 0.45629960317460316,
+        "ndcg_at_k": 0.5655456559930868
       },
       "run_scores": [
-        0.46963946303571863,
-        0.556917097276789,
-        0.6107091945535781
+        0.5427308273474166,
+        0.6132928866140279,
+        0.5476281096832544
       ],
-      "mean_composite_score": 0.5457552516220285,
-      "score_std": 0.05812978230617966
+      "mean_composite_score": 0.5678839412148996,
+      "score_std": 0.03217115773758629
     },
     {
       "config": {
@@ -81,18 +81,18 @@
       ],
       "mean_metrics": {
         "users_evaluated": 8,
-        "precision_at_k": 0.07500000000000001,
-        "recall_at_k": 0.75,
-        "map_at_k": 0.5187499999999999,
-        "ndcg_at_k": 0.5761827216780518
+        "precision_at_k": 0.08333333333333333,
+        "recall_at_k": 0.8333333333333334,
+        "map_at_k": 0.4611607142857142,
+        "ndcg_at_k": 0.551181710806299
       },
       "run_scores": [
-        0.5946394630357186,
-        0.5532110124064654,
-        0.5811534235783093
+        0.5861390565274196,
+        0.5398579321943817,
+        0.5311747335866797
       ],
-      "mean_composite_score": 0.5763346330068311,
-      "score_std": 0.01725291641653554
+      "mean_composite_score": 0.552390574102827,
+      "score_std": 0.024125636903336897
     },
     {
       "config": {
@@ -120,16 +120,16 @@
         "users_evaluated": 8,
         "precision_at_k": 0.07500000000000001,
         "recall_at_k": 0.75,
-        "map_at_k": 0.5833333333333334,
-        "ndcg_at_k": 0.6256667451668365
+        "map_at_k": 0.5,
+        "ndcg_at_k": 0.5639406237187976
       },
       "run_scores": [
-        0.6327454733733637,
-        0.6571394630357186,
-        0.586315204891223
+        0.5642789260714371,
+        0.6107091945535781,
+        0.5151050020688204
       ],
-      "mean_composite_score": 0.6254000471001018,
-      "score_std": 0.02937669542093394
+      "mean_composite_score": 0.5633643742312785,
+      "score_std": 0.039035605191217446
     },
     {
       "config": {
@@ -155,18 +155,18 @@
       ],
       "mean_metrics": {
         "users_evaluated": 8,
-        "precision_at_k": 0.07500000000000001,
-        "recall_at_k": 0.75,
-        "map_at_k": 0.5013888888888889,
-        "ndcg_at_k": 0.5639076852004198
+        "precision_at_k": 0.07916666666666668,
+        "recall_at_k": 0.7916666666666666,
+        "map_at_k": 0.5284722222222222,
+        "ndcg_at_k": 0.5931559695164732
       },
       "run_scores": [
-        0.5154909467467277,
-        0.548209194553578,
-        0.6275836920604498
+        0.6242450668650648,
+        0.586315204891223,
+        0.5702454733733637
       ],
-      "mean_composite_score": 0.5637612777869184,
-      "score_std": 0.047064468959533284
+      "mean_composite_score": 0.5936019150432171,
+      "score_std": 0.022639362961394197
     }
   ],
   "selection_policy": "max(mean_composite_score)",
@@ -175,27 +175,27 @@
       "database": "blog_db",
       "collection": "user_activities",
       "decay_days": 30,
-      "factors": 96,
-      "regularization": 0.02,
-      "iterations": 30,
-      "alpha": 40.0,
+      "factors": 128,
+      "regularization": 0.01,
+      "iterations": 40,
+      "alpha": 60.0,
       "eval_k": 10,
-      "random_state": 42,
+      "random_state": 7,
       "activity_weight": {
         "view": 1.0,
         "like": 3.0,
         "comment": 6.0
       }
     },
-    "best_seed": 42,
+    "best_seed": 7,
     "mean_metrics": {
       "users_evaluated": 8,
-      "precision_at_k": 0.07500000000000001,
-      "recall_at_k": 0.75,
-      "map_at_k": 0.5833333333333334,
-      "ndcg_at_k": 0.6256667451668365
+      "precision_at_k": 0.07916666666666668,
+      "recall_at_k": 0.7916666666666666,
+      "map_at_k": 0.5284722222222222,
+      "ndcg_at_k": 0.5931559695164732
     },
-    "mean_composite_score": 0.6254000471001018,
+    "mean_composite_score": 0.5936019150432171,
     "beats_popularity": true
   }
 }
