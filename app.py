@@ -64,6 +64,12 @@ class RecommendResponse(BaseModel):
     post_ids: List[str]
 
 
+class RefreshRecommenderResponse(BaseModel):
+    success: bool
+    refreshed: bool
+    error: str | None = None
+
+
 def _load_model():
     processor = AutoImageProcessor.from_pretrained(CHECKPOINT_DIR, local_files_only=True)
     model = AutoModelForImageClassification.from_pretrained(CHECKPOINT_DIR, local_files_only=True)
@@ -84,6 +90,7 @@ else:
 RECOMMENDER = None
 RECOMMENDER_INIT_ERROR = None
 RECOMMENDER_LOCK = Lock()
+RECOMMENDER_BUILD_LOCK = Lock()
 RECOMMENDER_REFRESH_SECONDS = int(os.getenv("RECOMMENDER_REFRESH_SECONDS", "300"))
 RECOMMENDER_STOP_EVENT = Event()
 RECOMMENDER_REFRESH_THREAD = None
@@ -93,32 +100,33 @@ def _refresh_recommender_once() -> bool:
     global RECOMMENDER
     global RECOMMENDER_INIT_ERROR
 
-    mongo_uri = os.getenv("MONGO_URI")
-    if not mongo_uri:
-        RECOMMENDER_INIT_ERROR = "Missing MONGO_URI environment variable"
-        return False
+    with RECOMMENDER_BUILD_LOCK:
+        mongo_uri = os.getenv("MONGO_URI")
+        if not mongo_uri:
+            RECOMMENDER_INIT_ERROR = "Missing MONGO_URI environment variable"
+            return False
 
-    try:
-        next_recommender, best_config, best_metrics = select_best_recommender(mongo_uri)
-    except Exception as exc:
-        RECOMMENDER_INIT_ERROR = str(exc)
-        logging.exception("[recommender] Refresh failed")
-        return False
+        try:
+            next_recommender, best_config, best_metrics = select_best_recommender(mongo_uri)
+        except Exception as exc:
+            RECOMMENDER_INIT_ERROR = str(exc)
+            logging.exception("[recommender] Refresh failed")
+            return False
 
-    with RECOMMENDER_LOCK:
-        RECOMMENDER = next_recommender
-        RECOMMENDER_INIT_ERROR = None
+        with RECOMMENDER_LOCK:
+            RECOMMENDER = next_recommender
+            RECOMMENDER_INIT_ERROR = None
 
-    logging.info(
-        "[recommender] Refresh succeeded with best model: factors=%s reg=%s iter=%s alpha=%s NDCG@%s=%.4f",
-        best_config.factors,
-        best_config.regularization,
-        best_config.iterations,
-        best_config.alpha,
-        best_config.eval_k,
-        best_metrics.get("ndcg_at_k", 0.0),
-    )
-    return True
+        logging.info(
+            "[recommender] Refresh succeeded with best model: factors=%s reg=%s iter=%s alpha=%s NDCG@%s=%.4f",
+            best_config.factors,
+            best_config.regularization,
+            best_config.iterations,
+            best_config.alpha,
+            best_config.eval_k,
+            best_metrics.get("ndcg_at_k", 0.0),
+        )
+        return True
 
 
 def _recommender_refresh_loop() -> None:
@@ -198,6 +206,16 @@ def recommend_posts(payload: RecommendRequest):
         user_id=str(payload.user_id),
         count=len(post_ids),
         post_ids=post_ids,
+    )
+
+
+@app.post("/recommender/refresh", response_model=RefreshRecommenderResponse)
+def refresh_recommender_now():
+    refreshed = _refresh_recommender_once()
+    return RefreshRecommenderResponse(
+        success=refreshed,
+        refreshed=refreshed,
+        error=None if refreshed else RECOMMENDER_INIT_ERROR,
     )
 
 
