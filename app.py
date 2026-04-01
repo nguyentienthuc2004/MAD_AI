@@ -1,5 +1,6 @@
 import io
 import os
+from threading import Event, Lock, Thread
 from typing import List
 
 import torch
@@ -10,6 +11,8 @@ from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 import logging
+
+from recommend import build_recommender
 
 logging.basicConfig(level=logging.INFO)
 
@@ -41,6 +44,17 @@ class ModerationResponse(BaseModel):
     results: List[ModerationResult]
 
 
+class RecommendRequest(BaseModel):
+    user_id: str
+    top_k: int = 20
+
+
+class RecommendResponse(BaseModel):
+    user_id: str
+    count: int
+    post_ids: List[str]
+
+
 def _load_model():
     processor = AutoImageProcessor.from_pretrained(CHECKPOINT_DIR, local_files_only=True)
     model = AutoModelForImageClassification.from_pretrained(CHECKPOINT_DIR, local_files_only=True)
@@ -58,13 +72,111 @@ else:
     MODEL_LOAD_ERROR = None
 
 
+RECOMMENDER = None
+RECOMMENDER_INIT_ERROR = None
+RECOMMENDER_LOCK = Lock()
+RECOMMENDER_REFRESH_SECONDS = int(os.getenv("RECOMMENDER_REFRESH_SECONDS", "300"))
+RECOMMENDER_STOP_EVENT = Event()
+RECOMMENDER_REFRESH_THREAD = None
+
+
+def _refresh_recommender_once() -> bool:
+    global RECOMMENDER
+    global RECOMMENDER_INIT_ERROR
+
+    mongo_uri = os.getenv("MONGO_URI")
+    if not mongo_uri:
+        RECOMMENDER_INIT_ERROR = "Missing MONGO_URI environment variable"
+        return False
+
+    try:
+        next_recommender = build_recommender(mongo_uri)
+    except Exception as exc:
+        RECOMMENDER_INIT_ERROR = str(exc)
+        logging.exception("[recommender] Refresh failed")
+        return False
+
+    with RECOMMENDER_LOCK:
+        RECOMMENDER = next_recommender
+        RECOMMENDER_INIT_ERROR = None
+
+    logging.info("[recommender] Refresh succeeded")
+    return True
+
+
+def _recommender_refresh_loop() -> None:
+    while not RECOMMENDER_STOP_EVENT.is_set():
+        # Sleep first so startup request path can still initialize immediately.
+        if RECOMMENDER_STOP_EVENT.wait(timeout=RECOMMENDER_REFRESH_SECONDS):
+            break
+        _refresh_recommender_once()
+
+
+def _get_recommender():
+    if RECOMMENDER is None and not _refresh_recommender_once():
+        raise RuntimeError(RECOMMENDER_INIT_ERROR or "Failed to initialize recommender")
+    return RECOMMENDER
+
+
+@app.on_event("startup")
+def startup_recommender_refresh() -> None:
+    global RECOMMENDER_REFRESH_THREAD
+
+    RECOMMENDER_STOP_EVENT.clear()
+    _refresh_recommender_once()
+
+    if RECOMMENDER_REFRESH_SECONDS <= 0:
+        logging.info("[recommender] Auto refresh disabled (RECOMMENDER_REFRESH_SECONDS <= 0)")
+        return
+
+    RECOMMENDER_REFRESH_THREAD = Thread(target=_recommender_refresh_loop, daemon=True)
+    RECOMMENDER_REFRESH_THREAD.start()
+    logging.info(
+        "[recommender] Auto refresh enabled every %s seconds",
+        RECOMMENDER_REFRESH_SECONDS,
+    )
+
+
+@app.on_event("shutdown")
+def shutdown_recommender_refresh() -> None:
+    RECOMMENDER_STOP_EVENT.set()
+
+
 @app.get("/health")
 def health_check():
     return {
         "ok": IMAGE_MODEL is not None,
         "checkpointDir": CHECKPOINT_DIR,
         "error": MODEL_LOAD_ERROR,
+        "recommendation": {
+            "ready": RECOMMENDER is not None,
+            "error": RECOMMENDER_INIT_ERROR,
+        },
     }
+
+
+@app.post("/recommend", response_model=RecommendResponse)
+def recommend_posts(payload: RecommendRequest):
+    if payload.top_k <= 0:
+        raise HTTPException(status_code=400, detail="top_k must be > 0")
+
+    try:
+        recommender = _get_recommender()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"failed to initialize recommender: {exc}") from exc
+
+    try:
+        post_ids = recommender.recommend_post_ids(str(payload.user_id), k=payload.top_k)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"failed to generate recommendations: {exc}") from exc
+
+    return RecommendResponse(
+        user_id=str(payload.user_id),
+        count=len(post_ids),
+        post_ids=post_ids,
+    )
 
 
 @app.post("/moderate-images", response_model=ModerationResponse)

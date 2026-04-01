@@ -14,6 +14,76 @@ Dịch vụ FastAPI dùng để kiểm tra mức độ nhạy cảm của ảnh 
 - `checkpoint/`: model và processor đã huấn luyện.
 - `requirements.txt`: danh sách thư viện cần cài.
 
+## Recommendation API (chạy chung FastAPI)
+
+Ngoài API kiểm duyệt ảnh, server `app.py` cũng cung cấp API gợi ý bài viết cho backend:
+
+- `recommend.py`: core recommender (MongoDB + ALS) theo clean code.
+- `app.py`: FastAPI server chính, gồm cả `/moderate-images` và `/recommend` trên cùng cổng.
+
+### Endpoint
+
+1. Health check recommendation service
+
+`GET /health`
+
+2. Get recommendations
+
+`POST /recommend`
+
+Request body (JSON):
+
+```json
+{
+   "user_id": "<user-id>",
+   "top_k": 20
+}
+```
+
+Response:
+
+```json
+{
+   "user_id": "<user-id>",
+   "count": 20,
+   "post_ids": ["post-1", "post-2"]
+}
+```
+
+### Chạy recommendation endpoint
+
+Thiết lập biến môi trường MongoDB:
+
+```bash
+# Windows CMD
+set MONGO_URI=mongodb://localhost:27017
+```
+
+Thiết lập tự động cập nhật recommender mỗi 5 phút (mặc định đã là 300 giây):
+
+```bash
+# Windows CMD
+set RECOMMENDER_REFRESH_SECONDS=300
+```
+
+Chạy server FastAPI chính:
+
+```bash
+python app.py
+```
+
+Mặc định server chạy ở `http://0.0.0.0:3001`.
+Bạn có thể đổi bằng biến môi trường:
+
+```bash
+set HOST=0.0.0.0
+set PORT=3001
+python app.py
+```
+
+Lưu ý: không chạy đồng thời `app.py` và `recommend_api.py` trên cùng cổng.
+Recommender sẽ tự refresh nền theo chu kỳ `RECOMMENDER_REFRESH_SECONDS`.
+
 ## Yêu cầu
 
 - Python 3.10 trở lên.
